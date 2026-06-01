@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "app_name",
+      "value": "CardioConsult"
+    },
+    {
+      "name": "module_desc",
+      "value": "CardioConsult HarmonyOS"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "心脏超声教学辅助分析"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "CardioConsult"
+    },
+    {
+      "name": "permission_read_media_reason",
+      "value": "用于读取用户主动选择的脱敏心脏超声 PNG、DICOM 或 DCOM 文件。"
+    }
+  ]
+}

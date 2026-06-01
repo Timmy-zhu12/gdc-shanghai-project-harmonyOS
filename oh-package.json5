@@ -1,0 +1,14 @@
+{
+  "name": "cardioconsult-harmonyos",
+  "version": "1.0.0",
+  "description": "CardioConsult HarmonyOS teaching assistant for offline cardiac ultrasound analysis.",
+  "main": "",
+  "author": "CardioConsult Team",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@ohos/hvigor": "5.0.0",
+    "@ohos/hvigor-ohos-plugin": "5.0.0",
+    "@ohos/hypium": "1.0.21"
+  }
+}

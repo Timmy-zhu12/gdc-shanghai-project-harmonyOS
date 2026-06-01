@@ -1,0 +1,34 @@
+.hvigor/
+.idea/
+.deveco/
+build/
+**/build/
+**/libs/
+**/.preview/
+**/generated/
+node_modules/
+oh_modules/
+local.properties
+*.hap
+*.hsp
+*.app
+*.cer
+*.p7b
+*.p12
+*.keystore
+*.log
+*.tmp
+
+# Keep large local Gemma4 4B files out of GitHub.
+*.gguf
+*.bin
+*.safetensors
+entry/src/main/resources/rawfile/models/*
+!entry/src/main/resources/rawfile/models/README.md
+
+# Generated reports and sample patient data must not be committed.
+exports/
+samples/private/
+*.dcm
+*.dicom
+*.dcom

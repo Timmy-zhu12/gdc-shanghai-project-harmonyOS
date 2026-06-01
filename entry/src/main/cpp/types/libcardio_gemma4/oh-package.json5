@@ -1,0 +1,7 @@
+{
+  "name": "libcardio_gemma4.so",
+  "version": "1.0.0",
+  "description": "Type declarations for the CardioConsult Gemma4 4B native bridge.",
+  "main": "",
+  "types": "Index.d.ts"
+}
