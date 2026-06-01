@@ -169,3 +169,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\static_check.ps1
 ```
 
 该脚本会检查关键工程文件是否存在，并确认没有遗留旧模型名。
+
+## License / 许可证
+
+本仓库原创代码、脚本、UI、配置与文档采用 Apache License 2.0 发布，详见 [LICENSE](LICENSE)。
+
+注意：该许可证不覆盖第三方模型权重、GGUF 文件、移动/桌面系统 SDK、超声软件、医学影像数据集、第三方商标或用户提供的教学/临床数据；这些内容仍受其各自许可、平台条款或伦理/机构授权约束。详细边界见 [NOTICE](NOTICE)。
