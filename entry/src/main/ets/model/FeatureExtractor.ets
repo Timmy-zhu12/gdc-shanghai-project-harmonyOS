@@ -6,9 +6,9 @@ const STANDARD_VIEWS: Array<[string, string[]]> = [
   ['PSAX-MV', ['psax_mv', 'mitral', '二尖瓣短轴']],
   ['PSAX-PM', ['psax_pm', 'papillary', '乳头肌短轴']],
   ['PSAX-APEX', ['psax_apex', 'apex_short', '心尖短轴']],
-  ['A4C', ['a4c', 'apical_4', 'four_chamber', '心尖四腔']],
+  ['A4C', ['a4c', 'apical_4', 'four_chamber', '4ch', '4_chamber', '心尖四腔']],
   ['A5C', ['a5c', 'apical_5', 'five_chamber', '心尖五腔']],
-  ['A2C', ['a2c', 'apical_2', 'two_chamber', '心尖二腔']],
+  ['A2C', ['a2c', 'apical_2', 'two_chamber', '2ch', '2_chamber', '心尖二腔']],
   ['A3C', ['a3c', 'apical_3', 'three_chamber', '心尖三腔']],
   ['SUBCOSTAL-4C', ['subcostal', 'subxiphoid', '剑突下', '肋下']],
   ['IVC', ['ivc', '下腔静脉']],
@@ -51,9 +51,10 @@ export class FeatureExtractor {
       }
     }
 
-    const meanB = FeatureExtractor.meanVector(frames.map((frame: FrameAnalysis): number[] => frame.bmodeFeatures), 10);
+    const meanB = FeatureExtractor.meanVector(frames.map((frame: FrameAnalysis): number[] => frame.bmodeFeatures), 14);
     const meanF = FeatureExtractor.meanVector(frames.map((frame: FrameAnalysis): number[] => frame.flowFeatures), 10);
     const contractility = FeatureExtractor.computeContractilityProxy(frames);
+    const contractilityFraction = FeatureExtractor.computeContractilityFractionProxy(frames);
     let warning = '';
     if (viewSet.size > 12) {
       warning = '输入超过 12 个体位标签，已按全部文件聚合；建议按标准 12 体位整理。';
@@ -70,8 +71,9 @@ export class FeatureExtractor {
       meanBmode: meanB,
       meanFlow: meanF,
       contractilityProxy: contractility,
+      contractilityFractionProxy: contractilityFraction,
       coverageWarning: warning,
-      featureSummary: FeatureExtractor.buildFeatureSummary(frames, meanB, meanF, contractility, warning)
+      featureSummary: FeatureExtractor.buildFeatureSummary(frames, meanB, meanF, contractility, contractilityFraction, warning)
     };
   }
 
@@ -143,18 +145,52 @@ export class FeatureExtractor {
       }
     }
     dogMean /= Math.max(dog.length, 1);
+    let speckleResidual = 0;
+    let dogVariance = 0;
+    let leftSum = 0;
+    let rightSum = 0;
+    let leftCount = 0;
+    let rightCount = 0;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const index = y * width + x;
+        const value = normalized[index];
+        speckleResidual += Math.abs(value - dog[index]);
+        const dogDiff = dog[index] - dogMean;
+        dogVariance += dogDiff * dogDiff;
+        if (x < width / 2) {
+          leftSum += value;
+          leftCount++;
+        } else {
+          rightSum += value;
+          rightCount++;
+        }
+      }
+    }
+    const dxFeature = dxSum / Math.max(countDx, 1);
+    const dyFeature = dySum / Math.max(countDy, 1);
+    const varianceFeature = variance;
+    const contrastGain = Math.max(0, Math.min(3, (dogVariance / Math.max(dog.length, 1)) / Math.max(varianceFeature, 0.000001)));
+    const directionalAnisotropy = Math.max(0, Math.min(1, Math.abs(dxFeature - dyFeature) / Math.max(dxFeature + dyFeature, 0.001)));
+    const leftMean = leftSum / Math.max(leftCount, 1);
+    const rightMean = rightSum / Math.max(rightCount, 1);
+    const symmetryProxy = Math.max(0, Math.min(1, 1 - Math.abs(leftMean - rightMean)));
 
     return [
       mean,
-      variance,
-      dxSum / Math.max(countDx, 1),
-      dySum / Math.max(countDy, 1),
+      varianceFeature,
+      dxFeature,
+      dyFeature,
       gradSum / Math.max(gradCount, 1),
       gradActive / Math.max(gradCount, 1),
       FeatureExtractor.normalizedEntropy(hist),
       dogMean,
       dogHigh / Math.max(dog.length, 1),
-      FeatureExtractor.chamberAreaProxy(normalized, width, height)
+      FeatureExtractor.chamberAreaProxy(normalized, width, height),
+      Math.max(0, Math.min(1, speckleResidual / Math.max(normalized.length, 1))),
+      contrastGain,
+      directionalAnisotropy,
+      symmetryProxy
     ];
   }
 
@@ -474,13 +510,39 @@ export class FeatureExtractor {
       const systolic = group.filter((frame: FrameAnalysis): boolean => frame.phase === 'systole').map((frame: FrameAnalysis): number => frame.chamberAreaProxy);
       const diastolic = group.filter((frame: FrameAnalysis): boolean => frame.phase === 'diastole').map((frame: FrameAnalysis): number => frame.chamberAreaProxy);
       if (systolic.length > 0 && diastolic.length > 0) {
-        deltas.push(Math.max(...diastolic) - Math.min(...systolic));
+        deltas.push(Math.max(0, Math.max(...diastolic) - Math.min(...systolic)));
       }
     });
     if (deltas.length === 0) {
       return 0;
     }
     return deltas.reduce((sum: number, value: number): number => sum + value, 0) / deltas.length;
+  }
+
+  static computeContractilityFractionProxy(frames: FrameAnalysis[]): number {
+    const byView = new Map<string, FrameAnalysis[]>();
+    for (const frame of frames) {
+      if (!byView.has(frame.view)) {
+        byView.set(frame.view, []);
+      }
+      byView.get(frame.view)?.push(frame);
+    }
+    const fractions: number[] = [];
+    byView.forEach((group: FrameAnalysis[]) => {
+      const systolic = group.filter((frame: FrameAnalysis): boolean => frame.phase === 'systole').map((frame: FrameAnalysis): number => frame.chamberAreaProxy);
+      const diastolic = group.filter((frame: FrameAnalysis): boolean => frame.phase === 'diastole').map((frame: FrameAnalysis): number => frame.chamberAreaProxy);
+      if (systolic.length > 0 && diastolic.length > 0) {
+        const ed = Math.max(...diastolic);
+        const es = Math.min(...systolic);
+        if (ed > 0.001) {
+          fractions.push(Math.max(0, Math.min(1, (ed - es) / ed)));
+        }
+      }
+    });
+    if (fractions.length === 0) {
+      return 0;
+    }
+    return fractions.reduce((sum: number, value: number): number => sum + value, 0) / fractions.length;
   }
 
   static meanVector(vectors: number[][], length: number): number[] {
@@ -499,12 +561,12 @@ export class FeatureExtractor {
     return out;
   }
 
-  static buildFeatureSummary(frames: FrameAnalysis[], meanB: number[], meanF: number[], contractility: number, warning: string): string {
+  static buildFeatureSummary(frames: FrameAnalysis[], meanB: number[], meanF: number[], contractility: number, contractilityFraction: number, warning: string): string {
     const views = Array.from(new Set<string>(frames.map((frame: FrameAnalysis): string => frame.view))).sort().join(', ');
     const phaseText = frames.slice(0, 24)
       .map((frame: FrameAnalysis): string => `${frame.loaded.name}${frame.loaded.frameIndex > 0 ? `#${frame.loaded.frameIndex}` : ''}:${frame.phase}/${frame.view}`)
       .join(', ');
-    return `输入 ${frames.length} 个文件/帧，覆盖体位: ${views}. 相位识别: ${phaseText}. 收缩-舒张腔室面积代理差值 ${contractility.toFixed(3)}. B-mode 边缘密度=${meanB[5].toFixed(3)}, 纹理熵=${meanB[6].toFixed(3)}; Doppler 活跃区比例=${meanF[4].toFixed(3)}, 湍流代理=${meanF[5].toFixed(3)}, 涡量代理=${meanF[8].toFixed(3)}. ${warning}`.trim();
+    return `输入 ${frames.length} 个文件/帧，覆盖体位: ${views}. 相位识别: ${phaseText}. 收缩-舒张腔室面积代理差值 ${contractility.toFixed(3)}; contractility_fraction_proxy=${contractilityFraction.toFixed(3)}. B-mode 边缘密度=${meanB[5].toFixed(3)}, 纹理熵=${meanB[6].toFixed(3)}; Doppler 活跃区比例=${meanF[4].toFixed(3)}, 湍流代理=${meanF[5].toFixed(3)}, 涡量代理=${meanF[8].toFixed(3)}. ${warning}`.trim();
   }
 
   private static percentileFromSorted(sorted: number[], percentile: number): number {

@@ -5,6 +5,25 @@ export const SUPPORTED_EXTENSIONS: string[] = [
   '.bmp',
   '.tif',
   '.tiff',
+  '.webp',
+  '.heic',
+  '.heif',
+  '.gif',
+  '.apng',
+  '.mp4',
+  '.m4v',
+  '.mov',
+  '.avi',
+  '.mkv',
+  '.webm',
+  '.wmv',
+  '.mpg',
+  '.mpeg',
+  '.ts',
+  '.mts',
+  '.m2ts',
+  '.3gp',
+  '.cine',
   '.dcm',
   '.dicom',
   '.dcom'
@@ -54,6 +73,7 @@ export interface StudyAnalysis {
   meanBmode: number[];
   meanFlow: number[];
   contractilityProxy: number;
+  contractilityFractionProxy: number;
   coverageWarning: string;
   featureSummary: string;
 }
@@ -94,7 +114,7 @@ export function emptyModelConfig(): ModelConfig {
 export function compactFeatureText(study: StudyAnalysis): string {
   const bmode = study.meanBmode.map((value: number): string => value.toFixed(4)).join(', ');
   const flow = study.meanFlow.map((value: number): string => value.toFixed(4)).join(', ');
-  return `views=${study.viewCount}, files_or_frames=${study.inputCount}, systole=${study.systoleCount}, diastole=${study.diastoleCount}, contractility_proxy=${study.contractilityProxy.toFixed(4)}\nB-mode mean features=[${bmode}]\nDoppler mean features=[${flow}]`;
+  return `views=${study.viewCount}, files_or_frames=${study.inputCount}, systole=${study.systoleCount}, diastole=${study.diastoleCount}, contractility_proxy=${study.contractilityProxy.toFixed(4)}, contractility_fraction_proxy=${study.contractilityFractionProxy.toFixed(4)}\nB-mode mean features=[${bmode}]\nDoppler mean features=[${flow}]`;
 }
 
 export function fileExtension(name: string): string {
