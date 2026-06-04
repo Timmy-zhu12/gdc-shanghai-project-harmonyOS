@@ -1,4 +1,4 @@
-# CardioConsult HarmonyOS
+# CardioConsult HarmonyOS 版中文说明
 
 CardioConsult HarmonyOS 是基于 PC 版 CardioConsult 迁移出的华为 HarmonyOS 设备版本。项目面向医学教学、算法演示和 GDG/GDC 类比赛原型，不作为临床诊断、治疗建议或医嘱。
 
@@ -170,7 +170,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\static_check.ps1
 
 该脚本会检查关键工程文件是否存在，并确认没有遗留旧模型名。
 
-## License / 许可证
+## 许可证
 
 本仓库原创代码、脚本、UI、配置与文档采用 Apache License 2.0 发布，详见 [LICENSE](LICENSE)。
 
